@@ -7,7 +7,7 @@ visibleEdge_(V1, V2) :- visibleEdge(V2, V1).
 can_walk:- energy(E) & E>1.
 
 ///////////
-//beliefs  addiction
+//beliefs  addition
 ///////////
 +energy(0):
 	true <-
@@ -17,6 +17,8 @@ can_walk:- energy(E) & E>1.
 +step(_) :
 	can_walk <- visibleEdge_(V1,V2); goto(V1);
 	.print("I'm going to explore the world!!!"). 
+=======
+
 /* Initial goals */
 
 !start.
