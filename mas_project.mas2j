@@ -1,9 +1,11 @@
-MAS mas_project {
+MAS test1 {
 
 	infrastructure: Centralised
+	environment: env.Connection(28)
 
 	agents:
-		agent1 sample_agent;
+		agent2 agentArchClass arch.AgentArch #5;
+		agent1 sample_agent agentArchClass arch.AgentArch;
 
 	aslSourcePath:
 		"src/asl";

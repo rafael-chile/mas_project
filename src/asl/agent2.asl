@@ -1,4 +1,4 @@
-// Agent sample_agent in project test1
+// Agent agent2 in project test1
 
 /* Initial beliefs and rules */
 
