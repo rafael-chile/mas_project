@@ -4,7 +4,7 @@ MAS test1 {
 	environment: env.Connection(28)
 
 	agents:
-		agent2 agentArchClass arch.AgentArch #1;
+		agent2 agentArchClass arch.AgentArch;
 
 	aslSourcePath:
 		"src/asl";
