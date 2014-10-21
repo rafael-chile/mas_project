@@ -3,6 +3,7 @@
 
 #Eclipse config
 .claspath
+bin/*
 
 # Windows image file caches
 Thumbs.db
