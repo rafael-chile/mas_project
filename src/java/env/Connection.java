@@ -1,34 +1,42 @@
 package env;
 
+import jason.JasonException;
+import jason.asSyntax.ASSyntax;
 import jason.asSyntax.Literal;
 import jason.asSyntax.Structure;
 import jason.asSyntax.Term;
 import jason.environment.Environment;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import agent.AgentListener;
-
+import util.Translator;
+import eis.AgentListener;
 import eis.EILoader;
 import eis.EnvironmentInterfaceStandard;
 import eis.exceptions.ActException;
 import eis.exceptions.AgentException;
 import eis.exceptions.ManagementException;
+import eis.exceptions.NoEnvironmentException;
+import eis.exceptions.PerceiveException;
 import eis.exceptions.RelationException;
 import eis.iilang.Action;
 import eis.iilang.Identifier;
 import eis.iilang.Parameter;
 import eis.iilang.Percept;
+import agent.AgentListenerEvents;
 
-public class Connection extends Environment {
+public class Connection extends Environment implements AgentListener {
 	
 
 	private static final String CN = "massim.eismassim.EnvironmentInterface";
+	private static Map<String, AgentListenerEvents> listeners = new HashMap<String, AgentListenerEvents>();
 	private EnvironmentInterfaceStandard ei;
 	private Map<String, AgentListener> marsAgentListeners;
 	public void init(String args[]) {
@@ -42,6 +50,7 @@ public class Connection extends Environment {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
+
 		try {
 			ei.registerAgent("agent2");
             
@@ -49,7 +58,7 @@ public class Connection extends Environment {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-
+		ei.attachAgentListener("agent2", this);
 		try {
 			ei.associateEntity("agent2", "connectionA1");
 		} catch (RelationException e1) {
@@ -62,24 +71,12 @@ public class Connection extends Environment {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-	}
+	} 
 	
-	public void handlePercept(String agName, Percept percept) {
-			Collection<Collection<Percept>> persEnts = null;
-			try {
-				persEnts = ei.getAllPercepts("agent2").values();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			List<Percept> percepts = new LinkedList<Percept>();
-			for (Collection<Percept> persEnt : persEnts){
-				System.out.println(persEnt.toString());
-				percepts.addAll(persEnt);
-			}
-			handlePercepts(percepts);
-
-		} 
-	
+	public static void addAgentListenerEvents(String agName, AgentListenerEvents agArch) {
+        listeners.put(agName, agArch);
+        System.out.println("Agent " + agName + " added!");
+    }
 
 	private String sanitizeTerm(String term) {
 		if (term.isEmpty())
@@ -95,20 +92,6 @@ public class Connection extends Environment {
 			terms += paramsIt.hasNext() ? "," : ")";
 		}
 		return Literal.parseLiteral(sanitizeTerm(percept.getName()) + terms);
-	}
-
-	
-	private void handlePercepts(List<Percept> percepts) {
-		List<Literal> literalPercepts = new LinkedList<Literal>();
-		for (Percept percept : percepts)
-			literalPercepts.add(literalOf(percept));
-		notifyPercepts(literalPercepts);
-	}
-	
-	private void notifyPercepts(List<Literal> percepts) {
-		AgentListener marsAgentListener = marsAgentListeners.get("agent2");
-		if (marsAgentListener != null)
-			 marsAgentListener.notifyPercepts(percepts);
 	}
 
 	
@@ -131,4 +114,62 @@ public class Connection extends Environment {
 			parameters.add(new Identifier(term.toString()));
 		return new Action(sAction.getFunctor(), parameters);
 	}
+	
+	public void handlePercept(String agent, Collection<Percept> percepts) {        
+        try {
+            clearPercepts(agent);
+            
+            if (listeners.containsKey(agent)) {
+                Literal[] jasonPers = new Literal[percepts.size()];
+                int i = 0;
+                for (Percept p: percepts) {
+                    jasonPers[i++] = Translator.perceptToLiteral(p);
+                }
+            
+                listeners.get(agent).notifyPercepts(jasonPers);
+                
+                //add the massim belief
+                //if (agToMassimContest.containsKey(agToMassimContest.get(listeners.get(agent)))) {
+                listeners.get(agent).addBelief(Literal.parseLiteral("myNameInContest(agent2)"));
+                //}
+            }
+        } catch (JasonException e) {
+            e.printStackTrace();
+        }
+    }
+
+	public void handlePercept(String arg0, Percept arg1) {
+		/*try {
+			System.out.println("Agent: " + arg0 + "perceiving percept " + Translator.perceptToLiteral(arg1));
+		} catch (JasonException e) {
+			e.printStackTrace();
+		}*/
+	}
+	
+	@Override
+    public List<Literal> getPercepts(String agName) {
+        return addEISPercept(super.getPercepts(agName),agName);
+    }
+    
+    protected List<Literal> addEISPercept(List<Literal> percepts, String agName) {
+        clearPercepts(agName);
+        if (percepts == null) 
+            percepts = new ArrayList<Literal>();
+        
+        if (ei != null) {
+            try {
+                Map<String,Collection<Percept>> perMap = ei.getAllPercepts(agName);
+                for (String entity: perMap.keySet()) {
+                    Structure strcEnt = ASSyntax.createStructure("entity", ASSyntax.createAtom(entity));
+                    for (Percept p: perMap.get(entity)) {
+                        percepts.add(Translator.perceptToLiteral(p).addAnnots(strcEnt));
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        
+        return percepts;        
+    }
 }
