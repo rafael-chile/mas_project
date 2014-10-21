@@ -2,7 +2,7 @@
 *.class
 
 #Eclipse config
-.claspath
+.classpath
 bin/*
 
 # Windows image file caches
