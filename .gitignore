@@ -1,3 +1,9 @@
+#Java Class File
+*.class
+
+#Eclipse config
+.claspath
+
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
